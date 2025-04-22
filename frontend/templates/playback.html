@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Playback</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+<body>
+    <div id="app">
+        <section class="section">
+            <div class="container">
+                <h2 class="title is-4 has-text-centered">
+                    <i class="fas fa-music"></i> 正在播放
+                </h2>
+
+                <!-- Song Information -->
+                <div class="has-text-centered">
+                    <figure class="image is-128x128 mx-auto">
+                        <img :src="currentSong.album_image || '/static/img/default-album.png'" alt="Album Cover" class="album-cover">
+                    </figure>
+                    <p class="title is-3">{{ currentSong.title }}</p>
+                    <p class="subtitle is-5">{{ currentSong.artist }}</p>
+                </div>
+
+                <!-- Buttons -->
+                <div class="buttons is-centered mt-5">
+                    <!-- Like Button -->
+                    <button class="button is-small is-success" @click="showLikeOptions">
+                        <span class="icon">
+                            <i class="fas fa-thumbs-up"></i>
+                        </span>
+                    </button>
+
+                    <!-- Dislike Button -->
+                    <button class="button is-small is-danger" @click="showDislikeOptions">
+                        <span class="icon">
+                            <i class="fas fa-thumbs-down"></i>
+                        </span>
+                    </button>
+
+                    <!-- Not Interested Button -->
+                    <button class="button is-small is-warning" @click="markNotInterested">
+                        <span class="icon">
+                            <i class="fas fa-ban"></i>
+                        </span>
+                    </button>
+
+                    <!-- Recommend Button -->
+                    <button class="button is-small is-info" @click="recommendSong">
+                        <span class="icon">
+                            <i class="fas fa-share-alt"></i>
+                        </span>
+                    </button>
+                    <!-- 评论按钮 -->
+                    <button class="button is-small is-link" @click="addComment(song)">
+                        <span class="icon">
+                            <i class="fas fa-comment"></i>
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.min.js"></script>
+    <script>
+        new Vue({
+            el: '#app',
+            data: {
+                currentSong: {
+                    id: null,
+                    title: '',
+                    artist: '',
+                    album_image: ''
+                }
+            },
+            created() {
+                // Parse query parameters from the URL
+                const params = new URLSearchParams(window.location.search);
+                this.currentSong = {
+                    id: params.get('songId'),
+                    title: decodeURIComponent(params.get('title')),
+                    artist: decodeURIComponent(params.get('artist')),
+                    album_image: decodeURIComponent(params.get('albumImage'))
+                };
+            },
+            methods: {
+                showLikeOptions() {
+                    const likeLevels = ["非常喜欢", "喜欢", "一般"];
+                    const selectedLevel = prompt(
+                        `请选择您对歌曲 "${this.currentSong.title}" 的喜欢程度：\n\n${likeLevels.join("\n")}`,
+                        likeLevels[0]
+                    );
+                    if (selectedLevel && likeLevels.includes(selectedLevel)) {
+                        alert(`您选择了 "${selectedLevel}" 对歌曲 "${this.currentSong.title}"`);
+                    }
+                },
+
+                showDislikeOptions() {
+                    const dislikeLevels = ["非常不喜欢", "不喜欢", "有点不喜欢"];
+                    const selectedLevel = prompt(
+                        `请选择您对歌曲 "${this.currentSong.title}" 的不喜欢程度：\n\n${dislikeLevels.join("\n")}`,
+                        dislikeLevels[0]
+                    );
+                    if (selectedLevel && dislikeLevels.includes(selectedLevel)) {
+                        alert(`您选择了 "${selectedLevel}" 对歌曲 "${this.currentSong.title}"`);
+                    }
+                },
+
+                markNotInterested() {
+                    alert(`您已标记歌曲 "${this.currentSong.title}" 为不感兴趣`);
+                    // Optionally remove the song from recommendations or perform other actions
+                },
+
+                recommendSong() {
+                    alert(`您已将歌曲 "${this.currentSong.title}" 推荐给其他用户`);
+                    // Implement server-side logic to share the song with others
+                },
+                // 添加评论
+                addComment(song) {
+                    const comment = prompt(`请输入您对歌曲 "${song.title}" 的评论：`);
+                    if (comment) {
+                        alert(`感谢您的反馈！您对歌曲 "${song.title}" 的评论是：\n"${comment}"`);
+                        // 将评论存储到 song 对象中
+                        if (!song.comments) {
+                            this.$set(song, 'comments', []);
+                        }
+                        song.comments.push(comment);
+                    } else {
+                        alert("您未输入任何评论！");
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
