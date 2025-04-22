@@ -116,30 +116,144 @@
         }
         
         /* 推荐项目样式优化 */
+        /* 推荐结果主容器 */
+        .recommendations-container {
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+            padding: 2rem;
+            margin: 2rem auto;
+            max-width: 1000px;
+        }
+
+        /* 推荐项 */
         .recommendation-item {
-            padding: 1rem;
-            margin-bottom: 1rem;
-            border-radius: var(--border-radius);
-            background-color: white;
-            box-shadow: var(--card-shadow);
-            transition: transform var(--transition-speed), box-shadow var(--transition-speed);
-        }
-        
-        .recommendation-item:hover {
-            transform: translateX(5px);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
-        }
-        
-        .rank-number {
             display: flex;
             align-items: center;
-            justify-content: center;
-            width: 30px;
-            height: 30px;
-            background-color: var(--primary-color);
-            color: white;
-            border-radius: 50%;
-            font-weight: bold;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            background: white;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .recommendation-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(72,199,116,0.15);
+            border-left-color: #48c774;
+        }
+
+        /* 前三名特殊样式 */
+        .recommendation-item.top-3 {
+            background: linear-gradient(135deg, #f8fff9 0%, #ffffff 100%);
+            border-left-width: 6px;
+        }
+
+        /* 排名标识 */
+        .ranking-badge {
+            position: relative;
+            min-width: 50px;
+            text-align: center;
+            margin-right: 1.5rem;
+        }
+
+        .rank-number {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #48c774;
+            display: block;
+        }
+
+        .rank-crown {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .fa-crown {
+            font-size: 1.2rem;
+        }
+
+        .gold { color: #ffd700; }
+        .silver { color: #c0c0c0; }
+        .bronze { color: #cd7f32; }
+
+        /* 专辑封面 */
+        .album-cover {
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            object-fit: cover;
+            margin-right: 2rem;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+        }
+
+        /* 歌曲信息 */
+        .song-info {
+            flex: 1;
+            margin-right: 2rem;
+        }
+
+        .song-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+
+        .song-artist {
+            font-size: 1rem;
+            color: #7f8c8d;
+            margin-bottom: 0.8rem;
+        }
+
+        .recommend-reason {
+            background: rgba(72,199,116,0.08);
+            padding: 0.8rem 1.2rem;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            color: #48c774;
+        }
+
+        /* 操作按钮 */
+        .action-buttons {
+            display: flex;
+            gap: 0.8rem;
+            min-width: 160px;
+        }
+
+        .button {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            transition: all 0.2s ease;
+        }
+
+        .button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        /* 空状态 */
+        .empty-state {
+            padding: 4rem 2rem;
+            text-align: center;
+            border: 2px dashed #e0e0e0;
+            border-radius: 12px;
+            background: rgba(250,250,250,0.8);
+        }
+
+        .loading-animation {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.8; }
+            50% { opacity: 0.4; }
+            100% { opacity: 0.8; }
         }
         
         /* 聊天界面样式优化 */
@@ -344,17 +458,20 @@
         }
     </style>
     
+
+    <!-- 启用生产模式 -->
+    
     <!-- Vue.js开发版 -->
     <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.min.js"></script>
-    
-    <!-- 启用生产模式 -->
+    <!-- 引入Axios库 -->
+    <script src="https://cdn.jsdelivr.net/npm/axios@0.21.1/dist/axios.min.js"></script>
     <script>
         Vue.config.productionTip = false;
         Vue.config.devtools = false;
+
+        
     </script>
-    
-    <!-- 引入Axios库 -->
-    <script src="https://cdn.jsdelivr.net/npm/axios@0.21.1/dist/axios.min.js"></script>
+
 </head>
 <body>
     <div id="app">
@@ -674,10 +791,11 @@
             <section class="section" v-if="currentTab === 'recommend'" transition="fade">
                 <div class="container">
                     <h2 class="title is-4">
-                        <i class="fas fa-headphones"></i> {{ content.recommend.title }}
+                        <i class="fas fa-headphones"></i> 推荐的结果
                     </h2>
-                    <p class="subtitle is-6">{{ content.recommend.subtitle }}</p>
+                    <p class="subtitle is-6">以下是为您推荐的歌曲列表</p>
                     
+                    <!-- 示例推荐歌曲 -->
                     <div class="columns">
                         <div class="column is-8-desktop is-offset-2-desktop">
                             <div class="box">
@@ -687,7 +805,8 @@
                                     </span>
                                     <p>{{ content.recommend.loading }}</p>
                                 </div>
-                                
+
+                                <!-- 无推荐结果时的提示 -->
                                 <div v-else-if="recommendations.length === 0" class="has-text-centered py-5">
                                     <span class="icon is-large">
                                         <i class="fas fa-music fa-2x"></i>
@@ -698,15 +817,19 @@
                                     </button>
                                 </div>
                                 
+                                <!-- 推荐结果展示 -->
                                 <div v-else class="songs-container">
                                     <div v-for="(song, index) in recommendations" 
                                          :key="song.id"
                                          class="recommendation-item animate__animated animate__fadeIn"
                                          :style="{'animation-delay': index * 0.1 + 's'}">
                                         <div class="columns is-vcentered">
+                                            <!-- 排名 -->
                                             <div class="column is-narrow">
                                                 <span class="rank-number">{{ index + 1 }}</span>
                                             </div>
+
+                                            <!-- 歌曲封面 -->
                                             <div class="column is-narrow">
                                                 <figure class="image is-48x48">
                                                     <img :src="song.album_image || '/static/img/default-album.png'" 
@@ -714,6 +837,8 @@
                                                          @error="handleImageError">
                                                 </figure>
                                             </div>
+
+                                            <!-- 歌曲信息 -->
                                             <div class="column">
                                                 <p class="title is-5">{{ song.title }}</p>
                                                 <p class="subtitle is-6">{{ song.artist }}</p>
@@ -721,6 +846,8 @@
                                                     <i class="fas fa-lightbulb"></i> {{ song.explanation }}
                                                 </p>
                                             </div>
+
+                                            <!-- 操作按钮 -->
                                             <div class="column is-narrow">
                                                 <div class="buttons">
                                                     <button class="button is-small" 
@@ -750,6 +877,20 @@
                     </div>
                 </div>
             </section>
+
+
+            
+
+
+
+
+
+
+
+
+
+
+
 
             <section class="section" v-if="currentTab === 'chat'" transition="fade">
                 <div class="container">
@@ -989,6 +1130,7 @@
                     </div>
                 </div>
             </section>
+
         </div>
 
         <!-- 页脚 -->
@@ -1002,6 +1144,8 @@
                 </p>
             </div>
         </footer>
+
+        
     </div>
 
     <!-- 通知系统 -->
@@ -1027,5 +1171,6 @@
 
     <!-- 引入主JavaScript文件 -->
     <script src="/static/js/main.js"></script>
+    
 </body>
 </html> 
