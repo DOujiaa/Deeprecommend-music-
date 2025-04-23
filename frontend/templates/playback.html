@@ -6,13 +6,129 @@
     <title>Music Playback</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma/css/bulma.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        /* 引入你提供的网易云音乐风格样式 */
+        :root {
+            --primary-color: #8A2BE2;         /* 紫色主色调 */
+            --primary-light: #9B4BFF;         /* 亮紫色悬停效果 */
+            --primary-dark: #6A1B9A;          /* 深紫色按下效果 */
+            --secondary-color: #6600CC;       /* 次要紫色 */
+            --background-color: #191919;      /* 深黑背景 */
+            --card-background: #252525;       /* 卡片背景 */
+            --hover-background: #333333;      /* 悬停背景 */
+            --text-color: #FFFFFF;            /* 主文字颜色，提高亮度 */
+            --light-text: #CCCCCC;            /* 次要文字，提高亮度 */
+            --very-light-text: #FFFFFF;       /* 高亮文字，最高亮度 */
+            --border-color: #3F3F3F;          /* 边框颜色 */
+            --border-radius: 8px;
+            --box-shadow: 0 4px 12px rgba(138, 43, 226, 0.4);
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-image: url('/static/img/music-pattern.svg');
+            background-blend-mode: overlay;
+            background-size: 300px;
+            background-attachment: fixed;
+        }
+
+        a {
+            color: var(--primary-light);
+            transition: var(--transition);
+        }
+
+        a:hover {
+            color: var(--primary-color);
+        }
+
+        /* 标题和文本增强 */
+        .title, .subtitle {
+            color: var(--text-color);
+            font-weight: 600;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        /* 网易云风格的按钮 */
+        .button.is-primary {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(138, 43, 226, 0.2);
+        }
+
+        .button.is-primary:hover {
+            background-color: var(--primary-light);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(138, 43, 226, 0.3);
+        }
+
+        /* 进度条样式 */
+        .progress-container {
+            width: 100%;
+            height: 5px;
+            background: var(--border-color);
+            border-radius: 5px;
+            cursor: pointer;
+            position: relative;
+            margin-top: 20px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--primary-color);
+            border-radius: 5px;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        .progress-thumb {
+            position: absolute;
+            top: -5px;
+            left: 0;
+            width: 15px;
+            height: 15px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            transform: translateX(-50%);
+            cursor: pointer;
+        }
+
+        /* 播放器控制按钮 */
+        .player-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .player-controls button {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .player-controls button:hover {
+            color: var(--primary-light);
+        }
+    </style>
 </head>
 <body>
     <div id="app">
         <section class="section">
             <div class="container">
                 <h2 class="title is-4 has-text-centered">
-                    <i class="fas fa-music"></i> 正在播放
+                    <i class="fas fa-music"></i> Playing
                 </h2>
 
                 <!-- Song Information -->
@@ -22,6 +138,31 @@
                     </figure>
                     <p class="title is-3">{{ currentSong.title }}</p>
                     <p class="subtitle is-5">{{ currentSong.artist }}</p>
+
+                    <!-- Progress Bar -->
+                    <div class="progress-container" @click="seekProgress($event)">
+                        <div class="progress-bar" :style="{ width: progressWidth + '%' }"></div>
+                        <div class="progress-thumb" :style="{ left: progressWidth + '%' }"></div>
+                    </div>
+
+                    <!-- Time Display -->
+                    <div class="columns is-mobile is-gapless mt-2">
+                        <div class="column has-text-left">{{ formatTime(currentTime) }}</div>
+                        <div class="column has-text-right">{{ formatTime(duration) }}</div>
+                    </div>
+                </div>
+
+                <!-- Player Controls -->
+                <div class="player-controls">
+                    <button @click="togglePlayback">
+                        <i :class="isPlaying ? 'fas fa-pause' : 'fas fa-play'"></i>
+                    </button>
+                    <button @click="skipBackward">
+                        <i class="fas fa-backward"></i>
+                    </button>
+                    <button @click="skipForward">
+                        <i class="fas fa-forward"></i>
+                    </button>
                 </div>
 
                 <!-- Buttons -->
@@ -54,7 +195,7 @@
                         </span>
                     </button>
                     <!-- 评论按钮 -->
-                    <button class="button is-small is-link" @click="addComment(song)">
+                    <button class="button is-small is-link" @click="addComment(currentSong)">
                         <span class="icon">
                             <i class="fas fa-comment"></i>
                         </span>
@@ -62,6 +203,9 @@
                 </div>
             </div>
         </section>
+
+        <!-- Audio Element -->
+        <audio id="audioPlayer" style="display: none;" :src="currentSong.audio_url" @timeupdate="updateProgress" @loadedmetadata="onLoadedMetadata"></audio>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.min.js"></script>
@@ -73,7 +217,16 @@
                     id: null,
                     title: '',
                     artist: '',
-                    album_image: ''
+                    album_image: 'data:image/jpeg;base64,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',
+                    audio_url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' // 示例音频文件
+                },
+                isPlaying: false,
+                currentTime: 0,
+                duration: 0
+            },
+            computed: {
+                progressWidth() {
+                    return (this.currentTime / this.duration) * 100 || 0;
                 }
             },
             created() {
@@ -83,53 +236,147 @@
                     id: params.get('songId'),
                     title: decodeURIComponent(params.get('title')),
                     artist: decodeURIComponent(params.get('artist')),
-                    album_image: decodeURIComponent(params.get('albumImage'))
+                    album_image: decodeURIComponent(params.get('albumImage')),
+                    audio_url: params.get('audioUrl') || this.currentSong.audio_url
                 };
             },
             methods: {
-                showLikeOptions() {
-                    const likeLevels = ["非常喜欢", "喜欢", "一般"];
-                    const selectedLevel = prompt(
-                        `请选择您对歌曲 "${this.currentSong.title}" 的喜欢程度：\n\n${likeLevels.join("\n")}`,
-                        likeLevels[0]
-                    );
-                    if (selectedLevel && likeLevels.includes(selectedLevel)) {
-                        alert(`您选择了 "${selectedLevel}" 对歌曲 "${this.currentSong.title}"`);
-                    }
-                },
-
-                showDislikeOptions() {
-                    const dislikeLevels = ["非常不喜欢", "不喜欢", "有点不喜欢"];
-                    const selectedLevel = prompt(
-                        `请选择您对歌曲 "${this.currentSong.title}" 的不喜欢程度：\n\n${dislikeLevels.join("\n")}`,
-                        dislikeLevels[0]
-                    );
-                    if (selectedLevel && dislikeLevels.includes(selectedLevel)) {
-                        alert(`您选择了 "${selectedLevel}" 对歌曲 "${this.currentSong.title}"`);
-                    }
-                },
-
-                markNotInterested() {
-                    alert(`您已标记歌曲 "${this.currentSong.title}" 为不感兴趣`);
-                    // Optionally remove the song from recommendations or perform other actions
-                },
-
-                recommendSong() {
-                    alert(`您已将歌曲 "${this.currentSong.title}" 推荐给其他用户`);
-                    // Implement server-side logic to share the song with others
-                },
-                // 添加评论
-                addComment(song) {
-                    const comment = prompt(`请输入您对歌曲 "${song.title}" 的评论：`);
-                    if (comment) {
-                        alert(`感谢您的反馈！您对歌曲 "${song.title}" 的评论是：\n"${comment}"`);
-                        // 将评论存储到 song 对象中
-                        if (!song.comments) {
-                            this.$set(song, 'comments', []);
-                        }
-                        song.comments.push(comment);
+                togglePlayback() {
+                    const audio = document.getElementById('audioPlayer');
+                    if (this.isPlaying) {
+                        audio.pause();
                     } else {
-                        alert("您未输入任何评论！");
+                        audio.play();
+                    }
+                    this.isPlaying = !this.isPlaying;
+                },
+                updateProgress(event) {
+                    this.currentTime = event.target.currentTime;
+                    this.duration = event.target.duration;
+                },
+                onLoadedMetadata(event) {
+                    this.duration = event.target.duration;
+                },
+                seekProgress(event) {
+                    const rect = event.target.getBoundingClientRect();
+                    const clickPosition = event.clientX - rect.left;
+                    const percentage = (clickPosition / rect.width) * 100;
+                    const audio = document.getElementById('audioPlayer');
+                    audio.currentTime = (percentage / 100) * this.duration;
+                },
+                formatTime(time) {
+                    const minutes = Math.floor(time / 60);
+                    const seconds = Math.floor(time % 60).toString().padStart(2, '0');
+                    return `${minutes}:${seconds}`;
+                },
+                skipBackward() {
+                    const audio = document.getElementById('audioPlayer');
+                    audio.currentTime = Math.max(audio.currentTime - 10, 0);
+                },
+                skipForward() {
+                    const audio = document.getElementById('audioPlayer');
+                    audio.currentTime = Math.min(audio.currentTime + 10, this.duration);
+                },
+                // 显示喜欢程度选择框（使用星星评分）
+                showLikeOptions(song) {
+                    const likeLevels = [5, 4, 3, 2, 1]; // 5 颗星表示非常喜欢，4 颗星表示喜欢，3 颗星表示一般
+                    let selectedLevel = null;
+
+                    // 创建一个临时的 DOM 元素来显示星星评分
+                    const starContainer = document.createElement('div');
+                    starContainer.style.position = 'fixed';
+                    starContainer.style.top = '50%';
+                    starContainer.style.left = '50%';
+                    starContainer.style.transform = 'translate(-50%, -50%)';
+                    starContainer.style.backgroundColor = '#252525';
+                    starContainer.style.padding = '20px';
+                    starContainer.style.borderRadius = '8px';
+                    starContainer.style.boxShadow = '0 4px 12px rgba(138, 43, 226, 0.4)';
+                    starContainer.style.zIndex = '1000';
+
+                    // 星星评分内容
+                    starContainer.innerHTML = `
+                        <p style="color: white; text-align: center; margin-bottom: 10px;">Please select the level of like for "${song.title}" ：</p>
+                        <div class="rating" style="display: flex; justify-content: center;">
+                            ${likeLevels.map(level => `
+                                <span class="rating-item" data-level="${level}" style="cursor: pointer; font-size: 2rem; color: #ccc; transition: color 0.2s;">
+                                    ★
+                                </span>
+                            `).join('')}
+                        </div>
+                    `;
+
+                    // 添加点击事件监听器
+                    starContainer.querySelectorAll('.rating-item').forEach(star => {
+                        star.addEventListener('click', () => {
+                            selectedLevel = star.dataset.level;
+                            document.body.removeChild(starContainer); // 移除弹出框
+                            if (selectedLevel) {
+                                song.likedLevel = parseInt(selectedLevel);
+                                alert(`Your level of like for song "${song.title}"is ${selectedLevel} stars`);
+                            }
+                        });
+                    });
+
+                    // 将星星评分容器添加到页面中
+                    document.body.appendChild(starContainer);
+                },
+
+                // 显示不喜欢程度选择框（使用星星评分）
+                showDislikeOptions(song) {
+                    const dislikeLevels = [1, 2, 3,4, 5]; // 1 颗星表示非常不喜欢，2 颗星表示不喜欢
+                    let selectedLevel = null;
+
+                    // 创建一个临时的 DOM 元素来显示星星评分
+                    const starContainer = document.createElement('div');
+                    starContainer.style.position = 'fixed';
+                    starContainer.style.top = '50%';
+                    starContainer.style.left = '50%';
+                    starContainer.style.transform = 'translate(-50%, -50%)';
+                    starContainer.style.backgroundColor = '#252525';
+                    starContainer.style.padding = '20px';
+                    starContainer.style.borderRadius = '8px';
+                    starContainer.style.boxShadow = '0 4px 12px rgba(138, 43, 226, 0.4)';
+                    starContainer.style.zIndex = '1000';
+
+                    // 星星评分内容
+                    starContainer.innerHTML = `
+                        <p style="color: white; text-align: center; margin-bottom: 10px;">Please select the level of like for "${song.title}"：</p>
+                        <div class="rating" style="display: flex; justify-content: center;">
+                            ${dislikeLevels.map(level => `
+                                <span class="rating-item" data-level="${level}" style="cursor: pointer; font-size: 2rem; color: #ccc; transition: color 0.2s;">
+                                    ★
+                                </span>
+                            `).join('')}
+                        </div>
+                    `;
+
+                    // 添加点击事件监听器
+                    starContainer.querySelectorAll('.rating-item').forEach(star => {
+                        star.addEventListener('click', () => {
+                            selectedLevel = star.dataset.level;
+                            document.body.removeChild(starContainer); // 移除弹出框
+                            if (selectedLevel) {
+                                song.dislikedLevel = parseInt(selectedLevel);
+                                alert(`Your level of dislike for song "${song.title}"is ${selectedLevel} stars `);
+                            }
+                        });
+                    });
+                            // 将星星评分容器添加到页面中
+                    document.body.appendChild(starContainer);
+                },
+                markNotInterested() {
+                    alert(`You have marked "${this.currentSong.title}" as not interested`);
+                },
+                recommendSong() {
+                    alert(`You have recommended "${this.currentSong.title}" to other users`);
+                },
+                addComment(song) {
+                    const comment = prompt(`Please input the comments for "${song.title}"：`);
+                    if (comment) {
+                        alert(`Thanks for your comment！`);
+                    } else {
+                        alert("No comment！");
                     }
                 }
             }
