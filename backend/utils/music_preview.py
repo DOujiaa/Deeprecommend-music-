@@ -22,9 +22,11 @@ if DISABLE_7DIGITAL:
     logger.info("7digital功能已被禁用")
 
 # 检查是否配置了Spotify API密钥
-SPOTIFY_CLIENT_ID = os.environ.get('SPOTIFY_CLIENT_ID')
-SPOTIFY_CLIENT_SECRET = os.environ.get('SPOTIFY_CLIENT_SECRET')
-SPOTIFY_AVAILABLE = SPOTIFY_CLIENT_ID is not None and SPOTIFY_CLIENT_SECRET is not None
+SPOTIFY_CLIENT_ID = os.environ.get('SPOTIFY_CLIENT_ID', '4f1a2f4e1e034050ac432f8ebba72484')
+SPOTIFY_CLIENT_SECRET = os.environ.get('SPOTIFY_CLIENT_SECRET', '4abd4c31749748c8b89f7807c61a3f11')
+SPOTIFY_AVAILABLE = True  # 强制启用Spotify服务
+
+logger.info(f"Spotify服务状态: {'可用' if SPOTIFY_AVAILABLE else '不可用'}")
 
 # 默认预览URL - 当无法获取实际预览时使用
 DEFAULT_PREVIEW_URL = ""

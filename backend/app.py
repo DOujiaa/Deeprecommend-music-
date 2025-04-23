@@ -80,6 +80,16 @@ def init_db():
     )
     ''')
     
+    # 创建用户音乐偏好表
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS user_preferences (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT,
+        preferences TEXT,
+        timestamp TEXT
+    )
+    ''')
+    
     # 添加开发者账号
     cursor.execute('SELECT id FROM users WHERE username = ?', ('test',))
     if not cursor.fetchone():
@@ -652,6 +662,87 @@ def get_spotify_similar_tracks():
     except Exception as e:
         logger.error(f"获取Spotify相似歌曲时出错: {str(e)}", exc_info=True)
         return jsonify({'error': '获取Spotify相似歌曲时出错'}), 500
+
+@app.route('/questionnaire')
+def questionnaire():
+    """提供问卷调查页面"""
+    return render_template('questionnaire.html')
+
+@app.route('/api/user/preferences', methods=['POST'])
+def save_user_preferences():
+    """保存用户音乐偏好"""
+    data = request.json
+    user_id = data.get('userId')
+    preferences = data.get('preferences')
+    
+    if not user_id:
+        return jsonify({'error': '用户ID不能为空'}), 400
+    
+    if not preferences:
+        return jsonify({'error': '偏好数据不能为空'}), 400
+    
+    # 将偏好转换为JSON字符串
+    preferences_json = json.dumps(preferences, ensure_ascii=False)
+    
+    conn = sqlite3.connect('music_recommender.db')
+    cursor = conn.cursor()
+    
+    # 检查是否存在该用户的偏好数据
+    cursor.execute('SELECT id FROM user_preferences WHERE user_id = ?', (user_id,))
+    existing_preferences = cursor.fetchone()
+    
+    now = datetime.now().isoformat()
+    
+    if existing_preferences:
+        # 更新现有偏好
+        cursor.execute(
+            'UPDATE user_preferences SET preferences = ?, timestamp = ? WHERE user_id = ?',
+            (preferences_json, now, user_id)
+        )
+        logger.info(f"已更新用户 {user_id} 的音乐偏好")
+    else:
+        # 添加新偏好
+        cursor.execute(
+            'INSERT INTO user_preferences (user_id, preferences, timestamp) VALUES (?, ?, ?)',
+            (user_id, preferences_json, now)
+        )
+        logger.info(f"已添加用户 {user_id} 的音乐偏好")
+    
+    conn.commit()
+    conn.close()
+    
+    # 更新用户的推荐结果（如果需要）
+    # 这里可以添加调用推荐引擎的代码
+    
+    return jsonify({
+        'message': '用户偏好保存成功',
+        'user_id': user_id
+    })
+
+@app.route('/api/user/preferences/<user_id>', methods=['GET'])
+def get_user_preferences(user_id):
+    """获取用户音乐偏好"""
+    if not user_id:
+        return jsonify({'error': '用户ID不能为空'}), 400
+    
+    conn = sqlite3.connect('music_recommender.db')
+    cursor = conn.cursor()
+    
+    # 获取用户偏好
+    cursor.execute('SELECT preferences FROM user_preferences WHERE user_id = ?', (user_id,))
+    result = cursor.fetchone()
+    conn.close()
+    
+    if not result:
+        return jsonify({'error': '未找到该用户的偏好数据'}), 404
+    
+    # 解析JSON字符串
+    preferences = json.loads(result[0])
+    
+    return jsonify({
+        'user_id': user_id,
+        'preferences': preferences
+    })
 
 if __name__ == '__main__':
     logger.info("启动音乐推荐系统应用...")
