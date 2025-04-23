@@ -75,7 +75,7 @@ class MusicRecommender:
         self._load_data()
         
         logger.info(f"音乐推荐系统初始化完成: 模型类型={model_type}, 数据目录={data_dir}")
-    
+        
     def _load_data(self):
         """加载数据
         
@@ -90,8 +90,8 @@ class MusicRecommender:
             if not os.path.exists(songs_file) or not os.path.exists(interactions_file):
                 logger.info("数据文件不存在，创建样本数据...")
                 self._create_sample_data()
-            
-            # 加载歌曲元数据
+        
+        # 加载歌曲元数据
             self.songs_df = pd.read_csv(songs_file)
             logger.info(f"加载了 {len(self.songs_df)} 首歌曲的元数据")
             
@@ -244,7 +244,7 @@ class MusicRecommender:
             common_songs = user_songs.intersection(other_ratings.keys())
             if len(common_songs) < 3:  # 至少有3首共同评分的歌曲
                 continue
-            
+        
             # 计算余弦相似度
             sum_xy = sum(self.user_ratings[user_id][song] * other_ratings[song] for song in common_songs)
             sum_x2 = sum(self.user_ratings[user_id][song] ** 2 for song in common_songs)
@@ -755,7 +755,7 @@ class MusicRecommender:
         # 在完整实现中，这里应该是协同过滤和基于内容的推荐结果的加权混合
         # 简化版中直接调用普通推荐方法
         return self.get_recommendations(user_id, top_n)
-    
+
     def get_recommendations_by_artist(self, artist_name, top_n=5):
         """获取指定艺术家的歌曲推荐
         
@@ -792,7 +792,7 @@ class MusicRecommender:
                 result.append(song_data)
             
             return result
-            
+        
         except Exception as e:
             logger.error(f"获取艺术家歌曲时出错: {str(e)}")
             return self._get_default_sample_songs(top_n)

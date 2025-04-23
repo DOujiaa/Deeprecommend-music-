@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class MusicRecommenderAgent:
     """音乐推荐AI代理，结合AI对话能力与推荐引擎"""
     
-    def __init__(self, db_path='../../music_recommender.db', spotify_client_id=None, spotify_client_secret=None, sevend_api_key=None, recommender=None, hkbu_api_key=None, data_dir=None, use_msd=False):
+    def __init__(self, db_path='../../music_recommender.db', spotify_client_id="4f1a2f4e1e034050ac432f8ebba72484", spotify_client_secret="4abd4c31749748c8b89f7807c61a3f11", sevend_api_key=None, recommender=None, hkbu_api_key=None, data_dir=None, use_msd=False):
         """
         初始化音乐推荐代理
         
@@ -65,7 +65,7 @@ class MusicRecommenderAgent:
             try:
                 self.spotify = spotipy.Spotify(
                     auth_manager=SpotifyClientCredentials(
-                        client_id=self.spotify_client_id,
+                        client_id=self.spotify_client_id, 
                         client_secret=self.spotify_client_secret
                     )
                 )
@@ -87,7 +87,7 @@ class MusicRecommenderAgent:
         logger.info("音乐推荐代理初始化完成")
         
         self.current_user_id = None
-        
+    
     def process_message(self, user_id, user_message):
         """处理用户消息并返回回复"""
         self.current_user_id = user_id
@@ -784,7 +784,7 @@ class MusicRecommenderAgent:
                 recommendations.extend(mood_songs)
             
             return recommendations
-            
+        
         except Exception as e:
             logger.error(f"获取情绪歌曲推荐时出错: {e}")
             # 如果出错，返回一些通用音乐推荐
