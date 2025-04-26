@@ -57,7 +57,28 @@ def init_db():
         PRIMARY KEY (user_id, track_id)
     )
     ''')
+
+    # 创建用户点赞表
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS user_likes (
+        user_id TEXT,
+        track_id TEXT,
+        liked INTEGER,
+        timestamp TEXT,
+        PRIMARY KEY (user_id, track_id)
+    )
+    ''')
     
+    # 创建用户情绪输入表
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS user_emotions (
+        user_id TEXT,
+        emotion TEXT,
+        timestamp TEXT,
+        PRIMARY KEY (user_id, timestamp)
+    )
+    ''')
+
     # 创建用户反馈表
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS user_feedback (
@@ -743,6 +764,107 @@ def get_user_preferences(user_id):
         'user_id': user_id,
         'preferences': preferences
     })
+
+
+
+
+@app.route('/api/save_user_behavior', methods=['POST'])
+def save_user_behavior():
+    """保存用户行为数据（评分、点赞、情绪描述），并更新用户偏好"""
+    data = request.json
+    user_id = data.get('user_id')
+    behavior_type = data.get('behavior_type')  # 'rate', 'like', 'emotion'
+    track_id = data.get('track_id', None)
+    value = data.get('value')  # 评分值、点赞状态、情绪描述
+    
+    if not user_id or not behavior_type or value is None:
+        return jsonify({'error': '缺少必要参数'}), 400
+    
+    conn = sqlite3.connect('music_recommender.db')
+    cursor = conn.cursor()
+    now = datetime.now().isoformat()
+    
+    try:
+        if behavior_type == 'rate':
+            # 保存评分
+            cursor.execute('''
+            INSERT OR REPLACE INTO user_ratings (user_id, track_id, rating, timestamp)
+            VALUES (?, ?, ?, ?)
+            ''', (user_id, track_id, value, now))
+        
+        elif behavior_type == 'like':
+            # 保存点赞
+            cursor.execute('''
+            INSERT OR REPLACE INTO user_likes (user_id, track_id, liked, timestamp)
+            VALUES (?, ?, ?, ?)
+            ''', (user_id, track_id, value, now))
+        
+        elif behavior_type == 'emotion':
+            # 保存情绪描述
+            cursor.execute('''
+            INSERT INTO user_emotions (user_id, emotion, timestamp)
+            VALUES (?, ?, ?)
+            ''', (user_id, value, now))
+        
+        else:
+            return jsonify({'error': '无效的行为类型'}), 400
+        
+        # 更新用户偏好
+        update_user_preferences(user_id, behavior_type, value, track_id)
+        
+        conn.commit()
+        conn.close()
+        return jsonify({'message': '用户行为数据保存成功'})
+    
+    except Exception as e:
+        logger.error(f"保存用户行为数据时出错: {str(e)}", exc_info=True)
+        return jsonify({'error': '保存用户行为数据时出错'}), 500
+
+def update_user_preferences(user_id, behavior_type, value, track_id=None):
+    """根据用户行为更新偏好"""
+    conn = sqlite3.connect('music_recommender.db')
+    cursor = conn.cursor()
+    
+    # 获取现有偏好
+    cursor.execute('SELECT preferences FROM user_preferences WHERE user_id = ?', (user_id,))
+    result = cursor.fetchone()
+    preferences = json.loads(result[0]) if result and result[0] else {}
+    
+    if behavior_type == 'rate':
+        # 根据评分更新偏好
+        if 'rated_songs' not in preferences:
+            preferences['rated_songs'] = {}
+        preferences['rated_songs'][track_id] = value
+    
+    elif behavior_type == 'like':
+        # 根据点赞更新偏好
+        if 'liked_songs' not in preferences:
+            preferences['liked_songs'] = []
+        if value and track_id not in preferences['liked_songs']:
+            preferences['liked_songs'].append(track_id)
+        elif not value and track_id in preferences['liked_songs']:
+            preferences['liked_songs'].remove(track_id)
+    
+    elif behavior_type == 'emotion':
+        # 根据情绪描述更新偏好
+        if 'emotions' not in preferences:
+            preferences['emotions'] = []
+        preferences['emotions'].append(value)
+    
+    # 更新数据库中的偏好
+    preferences_json = json.dumps(preferences, ensure_ascii=False)
+    now = datetime.now().isoformat()
+    if result:
+        cursor.execute('''
+        UPDATE user_preferences SET preferences = ?, timestamp = ? WHERE user_id = ?
+        ''', (preferences_json, now, user_id))
+    else:
+        cursor.execute('''
+        INSERT INTO user_preferences (user_id, preferences, timestamp) VALUES (?, ?, ?)
+        ''', (user_id, preferences_json, now))
+    
+    conn.commit()
+    conn.close()
 
 if __name__ == '__main__':
     logger.info("启动音乐推荐系统应用...")
